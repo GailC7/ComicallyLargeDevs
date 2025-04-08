@@ -9,8 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-var provider=builder.Services.BuildServiceProvider();
-var configuration=provider.GetRequiredService<IConfiguration>();
+var configuration = builder.Configuration;
 
 builder.Services.AddHttpClient<MicroClient>(client =>
 {
@@ -31,7 +30,11 @@ builder.Logging.AddSimpleConsole(options =>
     options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
 });
 
-
+// More dynamic was of defining how the server is listening for traffic. (resulted in commenting a line out later in this file).
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.ListenAnyIP(8000); // Listen on port 8000
+});
 
 builder.Services.AddSingleton<GameService>();
 
@@ -45,8 +48,17 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+//Commented out this line of code from the original because it was not set up for HTTPS and was causing errors.
+//app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// De-bug line that would show when a request was sent for a certain method. Helps determine where the files were getting stuck.
+app.Use(async (context, next) =>
+{
+    Console.WriteLine($"[REQUEST] {context.Request.Method} {context.Request.Path}");
+    await next();
+});
+
 
 app.UseRouting();
 
@@ -63,6 +75,7 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-app.Urls.Add("http://0.0.0.0:8000");
+// Commented out this line of code from the original because it was a duplicate that was creating conflicts.
+//app.Urls.Add("http://0.0.0.0:8000");
 
 app.Run();

@@ -96,5 +96,45 @@ namespace BucStop.Controllers
         {
             return View();
         }
+
+        // Allows for the use of HTTP POST requests to upload the game
+        [HttpPost]
+        //Removes the need for authentication to this endpoint
+        [AllowAnonymous]
+        public async Task<IActionResult> UploadGame([FromForm] IFormFile gameFile)
+        {
+            //Debug line to see if the file was reaching the endpoint
+            Console.WriteLine("DEBUG: UploadGame endpoint hit.");
+
+            // Simple check for if a file was submitted
+            if (gameFile == null || gameFile.Length == 0)
+            {
+                Console.WriteLine("DEBUG: No file received.");
+                return BadRequest("No file uploaded.");
+            }
+
+            // Defines the destination path to the EBS volume (THIS MAY CHANGE USER TO USER)
+            var uploadsPath = "/mnt/ebs-storage";
+            // Creates the directory if it doesn't exist
+            Directory.CreateDirectory(uploadsPath);
+            var filePath = Path.Combine(uploadsPath, Path.GetFileName(gameFile.FileName));
+
+            try
+            {
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await gameFile.CopyToAsync(stream);
+                }
+
+                //Debug so we know the file made it through.
+                Console.WriteLine($"DEBUG: File saved to {filePath}");
+                return Json(new { message = "File uploaded successfully!" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("UPLOAD ERROR: " + ex.Message);
+                return StatusCode(500, $"Upload failed: {ex.Message}");
+            }
+        }
     }
 }
